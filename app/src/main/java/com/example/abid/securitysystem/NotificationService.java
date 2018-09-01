@@ -28,7 +28,6 @@ public class NotificationService extends Service {
 
     FirebaseDatabase database;
     DatabaseReference DatabaseNotificationReference;
-    DatabaseReference DatabaseNotificationImagesReference;
 
 
     public String image1;
@@ -69,69 +68,12 @@ public class NotificationService extends Service {
         database= FirebaseDatabase.getInstance();
 
         DatabaseNotificationReference=database.getReference("Notification");
-//        DatabaseNotificationImagesReference=database.getReference("NotificationImages");
-//
-//
-//        DatabaseNotificationImagesReference.addValueEventListener(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(DataSnapshot dataSnapshot) {
-//                // This method is called once with the initial value and again
-//                // whenever data at this location is updated.
-//
-//                imageList.removeAll(imageList);
-//                int i=0;
-//
-//                for(DataSnapshot snapshot:dataSnapshot.getChildren()){
-//                    //getting the data object as a model which is used to send data
-//                    // using RegisterServiceData Model class
-////                    DataModel dataModel = snapshot.getValue(DataModel.class);
-////
-//                    String object=snapshot.getValue().toString();
-//                    String [] splitObject=object.split("=");
-//
-//                    if(count==0){
-//                        image1=splitObject[1];
-//                        Log.i("image","Image 1 is "+image1);
-//                        count++;
-//                    }
-//                    else if (count==1) {
-//                        image2 = splitObject[1];
-//                        Log.i("image", "Image 2 is " + image2);
-//                        count = 0;
-//                        imageList.add(imageMaker.converter(image1,image2));
-////                        timeList.add("hello");
-//                    }
-//
-//
-////                    imageList.add(object);
-////                    Log.i("object",object);
-////                    addNotification();
-////                    i++;
-////                    Log.i("value", "List size is"+(Integer.toString(imageList.size())));
-////                    RegisterServiceData service=snapshot.getValue(RegisterServiceData.class);
-//
-//                }
-////                mAdapter.notifyDataSetChanged();
-////                updatedlistsize= imageList.size();
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(DatabaseError error) {
-//                // Failed to read value
-//                Log.i("value", "Failed to read value.", error.toException());
-//            }
-//        });
-//
-//
-
-
 
         DatabaseNotificationReference.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 addNotification();
-//                DatabaseNotificationReference.getRef().setValue(null);
+                DatabaseNotificationReference.getRef().setValue(null);
 
             }
 
@@ -163,20 +105,18 @@ public class NotificationService extends Service {
     public void onDestroy() {
         super.onDestroy();
     }
-
+    /*
+    Method for building Notifications
+     */
     public void addNotification() {
-
-//        Intent intent=new Intent(this,Tab1.class);
-//
-//        PendingIntent pendingIntent=PendingIntent.getActivity(this,0,intent,0);
 
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(getApplicationContext())
 
                         .setSmallIcon(R.drawable.c1)
-                        .setLargeIcon(BitmapFactory.decodeResource(this.getResources(),R.drawable.ic_stat_noti))
+                        .setLargeIcon(BitmapFactory.decodeResource(this.getResources(),R.drawable.logo))
                         .setContentTitle("Human Detected")
-//                        .setContentIntent(pendingIntent)
+                        .setAutoCancel(true)
                         .setContentText("Sir, The system has detected a human");
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
@@ -184,7 +124,6 @@ public class NotificationService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(contentIntent);
 
-        // Add as notification
         builder.setDefaults(Notification.DEFAULT_SOUND);
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.notify(0, builder.build());

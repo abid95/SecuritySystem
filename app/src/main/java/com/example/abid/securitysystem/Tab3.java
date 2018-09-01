@@ -1,90 +1,211 @@
 package com.example.abid.securitysystem;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import java.util.Date;
+import com.bumptech.glide.Glide;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
-public class Tab3 extends Fragment {
-    String [] headlines={"Pet Detected","Person Detected","Pet Detected","Person Detected","Pet Detected","Pet Detected","Person Detected",};
-    String [] details={"Hello Sir, A pet has been detected","Hello Sir, A person has been detected","Hello Sir, A pet has been detected","Hello Sir, A person has been detected","Hello Sir, A pet has been detected","Hello Sir, A pet has been detected","Hello Sir, A person has been detected"};
-    int[] IMAGES={R.drawable.c1,R.drawable.t2,R.drawable.c3,R.drawable.t4,R.drawable.c5,R.drawable.c6,R.drawable.t2};
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Tab3 extends Fragment implements MyAdapter.AddPersonListener{
+    String [] headlines ={"Person Detected","Person Detected","Person Detected","Person Detected","Person Detected","Person Detected","Person Detected"};
+    String [] details={"Hello Sir, A person has been detected","Hello Sir, A person has been detected","Hello Sir, A person has been detected","Hello Sir, A person has been detected","Hello Sir, A person has been detected","Hello Sir, A person has been detected","Hello Sir, A person has been detected"};
+    int[] IMAGES={R.drawable.t1,R.drawable.t2,R.drawable.t3,R.drawable.t4,R.drawable.t5,R.drawable.t6,R.drawable.t4};
+
+    private RecyclerView recyclerView;
+    private RecyclerView.Adapter mAdapter;
+    private LinearLayoutManager layoutManager;
+    FirebaseDatabase database;
+    DatabaseReference DatabaseImageDataReference;
+    DatabaseReference DatabaseInfoDataReference;
+    Context context;
+    private ProgressDialog mprogress;
+
+
+
+    public List<String> imageList;
+    public List<String> objectList;
+    public String image2;
+
+    int updatedlistsize=0;
+    private List<String> timeList;
+
+    int count=0;
+    ImageMaker imageMaker=new ImageMaker();
+
+
+
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, final ViewGroup container, Bundle savedInstanceState) {
         View rootview=inflater.inflate(R.layout.tab3,container,false);
-        final ListView listView=(ListView) rootview.findViewById(R.id.tab3list);
+        recyclerView=(RecyclerView) rootview.findViewById(R.id.recycler_view_tab3);
 
-        Tab3.CustomAdapter customAdapter=new Tab3.CustomAdapter();
-        listView.setAdapter(customAdapter);
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        context=this.getActivity();
+        mprogress=new ProgressDialog(context);
+//
+
+
+        layoutManager = new LinearLayoutManager(this.getActivity());
+        layoutManager.setReverseLayout(true);
+        layoutManager.setStackFromEnd(true);
+//        layoutManager=new GridLayoutManager(this,2);
+        recyclerView.setLayoutManager(layoutManager);
+
+
+        Log.i("value","before firebase");
+
+
+        database= FirebaseDatabase.getInstance();
+//        DatabaseImageDataReference = database.getReference("Images");
+        DatabaseInfoDataReference = database.getReference("History");
+
+
+        imageList =new ArrayList<>();
+        timeList=new ArrayList<>();
+        objectList=new ArrayList<>();
+
+        mAdapter = new MyAdapter(imageList,timeList,objectList,this);
+        recyclerView.setAdapter(mAdapter);
+
+        mprogress.setMessage("Loading....");
+        mprogress.show();
+
+        DatabaseInfoDataReference.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                String name=headlines[i];
-                String detail=details[i];
-                int image=IMAGES[i];
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                int count=0;
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
 
-                Toast.makeText(getActivity(),headlines[i],Toast.LENGTH_SHORT).show();
+                imageList.removeAll(timeList);
+                objectList.removeAll(objectList);
+                int i=0;
+
+                for(DataSnapshot snapshot:dataSnapshot.getChildren()){
+                    count++;
+                    if(count >= dataSnapshot.getChildrenCount()){
+                        //stop progress bar here
+
+                        mprogress.dismiss();
+                    }
 
 
+                    //getting the data object as a model which is used to send data
+                    // using RegisterServiceData Model class
+//                    DataModel dataModel = snapshot.getValue(DataModel.class);
+
+//
+                    String object=snapshot.getValue().toString();
+
+
+
+
+                    String [] splitObject=object.split(",");
+
+                    String objectName=splitObject[1];
+
+
+                    String [] nameOfObject=objectName.split("=");
+                    Log.i("check",nameOfObject[1]);
+
+                    objectList.add(nameOfObject[1]);
+
+                    String [] secondSplittime=splitObject[0].split("=");
+                    String getTime=secondSplittime[1];
+                    String [] secondSplitImages=splitObject[2].split("=");
+                    String firstPart=secondSplitImages[1];
+                    String secondPart=secondSplitImages[2];
+                    String thirdPart=secondSplitImages[3];
+                    String url=firstPart+"="+secondPart+"="+thirdPart;
+                    timeList.add(getTime);
+                    imageList.add(url);
+                    Log.i("time",object);
+                    Log.i("time123",url);
+//                    dialog.dismiss();
+                }
+                mAdapter.notifyDataSetChanged();
+                updatedlistsize= imageList.size();
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Log.i("value", "Failed to read value.", error.toException());
             }
         });
 
 
+
+
         return rootview;
     }
-    class CustomAdapter extends BaseAdapter {
 
-        @Override
-        public int getCount() {
-            return IMAGES.length;
-        }
 
-        @Override
-        public Object getItem(int i) {
-            return null;
-        }
 
-        @Override
-        public long getItemId(int i) {
-            return 0;
-        }
+    public void startDialog(int position)
+    {
 
-        @Override
-        public View getView(int i, View view, ViewGroup viewGroup) {
-            view=getLayoutInflater().inflate(R.layout.custom_layout,null);
+//        final EditText editText_name;
+//        final EditText editText_id;
+//        final String person_name;
+//        final String person_id;
+        final ImageView imageView;
 
-            ImageView imageView=(ImageView) view.findViewById(R.id.imageView);
-            TextView name=(TextView) view.findViewById(R.id.name);
-            TextView detail=(TextView) view.findViewById(R.id.detail);
-            TextView time=(TextView) view.findViewById(R.id.time);
-            TextView date=(TextView) view.findViewById(R.id.date);
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-            imageView.setImageResource(IMAGES[i]);
-            name.setText(headlines[i]);
-            detail.setText(details[i]);
+        final LayoutInflater inflater = getActivity().getLayoutInflater();
+        final View view = inflater.inflate(R.layout.add_person, null);
 
-            Date datel=new Date();
-            int hour=datel.getHours();
-            int minute=datel.getMinutes();
-            String currentTime=hour+" : "+minute;
-            time.setText(currentTime);
-            int day=datel.getDay();
-            int month=datel.getMonth()+1;
-            int year=datel.getYear()%100;
-            String currentDate=day+"/"+month+"/"+year;
-            date.setText(currentDate);
 
-            return view;
-        }
+        imageView=view.findViewById(R.id.imageView);
+        String url=imageList.get(position);
+        Glide.with(context).load(url).into(imageView);
+//        imageView.set
+//        editText_name = view.findViewById(R.id.add_person_name);
+//        editText_id = view.findViewById(R.id.add_person_id);
+
+//        final View view = inflater.inflate(R.layout.add_person,null);
+        builder.setView(view)
+//                .setTitle("Add")
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                    }
+                });
+
+        builder.create();
+
+        builder.show();
+
+    }
+
+    @Override
+    public void abc(int position) {
+        startDialog(position);
     }
 }
